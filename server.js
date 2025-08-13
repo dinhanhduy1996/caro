@@ -26,7 +26,7 @@ const games = new Map();
 
 wss.on('connection', (ws) => {
     const id = uuidv4();
-    const metadata = { id };
+    const metadata = { id, name: `Player #${id.substring(0, 6)}` }; // Default name
     clients.set(ws, metadata);
     console.log(`Client ${id} connected.`);
     ws.send(JSON.stringify({ type: 'your_id', id: id }));
@@ -110,6 +110,10 @@ wss.on('connection', (ws) => {
             case 'send_emoji':
                 handleSendEmoji(message);
                 break;
+            case 'set_name':
+                metadata.name = message.name;
+                broadcastPlayerList();
+                break;
             default:
                 console.log(`Unknown message type: ${message.type}`);
         }
@@ -147,7 +151,7 @@ wss.on('connection', (ws) => {
 
 function broadcastPlayerList() {
     const playerList = Array.from(clients.values()).map(meta => {
-        const playerInfo = { id: meta.id };
+        const playerInfo = { id: meta.id, name: meta.name };
         // Check if the player is in an ongoing game
         for (let [gameId, game] of games.entries()) {
             if (game.players.includes(meta.id) && !game.isOver) {
@@ -189,6 +193,7 @@ function handleInvite(message) {
         opponentClient.send(JSON.stringify({
             type: 'game_invite',
             from: message.sender,
+            fromName: message.inviterName, // Include inviter's name
             blockWinIfTwoEnds: message.blockWinIfTwoEnds
         }));
     }
@@ -215,10 +220,11 @@ function handleInviteAccepted(message) {
         };
         games.set(gameId, game);
 
-        const gameStartMessage = { type: 'game_start', gameId, opponentId: myId, blockWinIfTwoEnds: message.blockWinIfTwoEnds, isMyTurn: true, playerIndex: 0 };
+        const gameStartMessage = { type: 'game_start', gameId, opponentId: myId, opponentName: clients.get(myClient).name, blockWinIfTwoEnds: message.blockWinIfTwoEnds, isMyTurn: true, playerIndex: 0 };
         opponentClient.send(JSON.stringify(gameStartMessage));
 
         gameStartMessage.opponentId = opponentId;
+        gameStartMessage.opponentName = clients.get(opponentClient).name;
         gameStartMessage.isMyTurn = false;
         gameStartMessage.playerIndex = 1;
         myClient.send(JSON.stringify(gameStartMessage));
