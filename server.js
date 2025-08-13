@@ -1,7 +1,10 @@
 const http = require('http');
 const WebSocket = require('ws');
 
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('WebSocket server is running\n');
+});
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws) => {
@@ -13,7 +16,7 @@ wss.on('connection', (ws) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
 const clients = new Map();
