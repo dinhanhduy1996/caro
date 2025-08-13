@@ -1,11 +1,25 @@
+const http = require('http');
 const WebSocket = require('ws');
 
-const wss = new WebSocket.Server({ port: 8080 });
+const server = http.createServer();
+const wss = new WebSocket.Server({ server });
 
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+  ws.on('message', (msg) => {
+    console.log(`Received: ${msg}`);
+    ws.send(`Echo: ${msg}`);
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 const clients = new Map();
 const games = new Map();
 
-console.log('WebSocket server is running on ws://localhost:8080');
+
 
 wss.on('connection', (ws) => {
     const id = uuidv4();
